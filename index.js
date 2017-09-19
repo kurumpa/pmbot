@@ -3,8 +3,7 @@ const TelegramBot = require('node-telegram-bot-api')
 const {MongoClient} = require('mongodb')
 const {okTexts} = require('./src/texts')
 
-const url = 'mongodb://localhost:27017/pmbot_v01'
-
+const url = `mongodb://mongodb:27017/pmbot_v01`
 const connection = async function () {
   return MongoClient.connect(url)
 }
@@ -27,6 +26,6 @@ start().then(({db, bot}) => {
 
 async function onMessage (bot, db, msg) {
   await db.collection('messages').insertOne(msg)
+  console.log('message received')
   bot.sendMessage(msg.chat.id, okTexts[Math.floor(Math.random() * okTexts.length)])
 }
-
