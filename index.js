@@ -20,7 +20,7 @@ async function main () {
 
   chain(tg.getBot())
     .on('message', onAnyMessage)
-    .onText(/\/find (\.+)/, onFind)
+    .onText(/\/find (.+)/, onFind)
     .onText(/\/users/, onUsers)
     .onText(/\/userinfo (\d+)/, onUserInfo)
     .onText(/\/usermessages (\d+)/, onUserMessages)
@@ -36,10 +36,9 @@ function chain (bot) {
 }
 
 async function onFind (msg, [_, text]) {
-
+  const messages = await db.findMessages(msg.from.id, new RegExp(text, 'i'))
+  messages.forEach(m => { if (!m.text.startsWith('/')) tg.sendMessage(msg.chat.id, m.text) })
 }
-
-
 async function onUsers (msg) {
   if (!await db.userIsAdmin(msg.from.id)) { return }
   const users = await db.listUsers()

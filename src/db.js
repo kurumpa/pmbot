@@ -36,6 +36,11 @@ async function getUserInfo (userId) {
 async function getUserMessages (userId) {
   return getDb().collection('messages').find({'from.id': userId})
 }
+
+async function findMessages (userId, regex) {
+  return getDb().collection('messages').find({'from.id': userId, text: {$regex: regex}}, {text: 1})
+}
+
 module.exports = {
   getDb,
   connect,
@@ -44,5 +49,6 @@ module.exports = {
   userIsAdmin,
   getAdminIds,
   getUserInfo,
-  getUserMessages
+  getUserMessages,
+  findMessages,
 }
