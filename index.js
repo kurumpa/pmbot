@@ -1,31 +1,66 @@
 /* eslint-env node */
-const TelegramBot = require('node-telegram-bot-api')
-const {MongoClient} = require('mongodb')
+const db = require('./src/db')
+const tg = require('./src/tg')
 const {okTexts} = require('./src/texts')
 
-const url = `mongodb://mongodb:27017/pmbot_v01`
-const connection = async function () {
-  return MongoClient.connect(url)
-}
-
-const start = async function () {
-  const db = await connection()
-  console.log('Connected correctly to server')
+async function main () {
   const telegramBotToken = process.argv[2]
   if (!telegramBotToken) {
     throw new Error('Usage: node index.js YOUR_TELEGRAM_BOT_TOKEN')
   }
-  const bot = new TelegramBot(telegramBotToken, {polling: true})
-  console.log('Bot started')
-  return {db, bot}
+
+  await db.connect()
+  await tg.connect(telegramBotToken)
+  const userIds = await db.getAdminIds()
+
+  process.on('unhandledRejection', async function (err, p) {
+    console.log('Unhandled Rejection at:', p, 'reason:', err.stack)
+    tg.sendErrorLog(userIds, err.stack)
+  })
+
+  chain(tg.getBot())
+    .on('message', onAnyMessage)
+    .onText(/\/find (\.+)/, onFind)
+    .onText(/\/users/, onUsers)
+    .onText(/\/userinfo (\d+)/, onUserInfo)
+    .onText(/\/usermessages (\d+)/, onUserMessages)
+
+  userIds.forEach(id => tg.sendMessage(id, 'Bot restarted'))
 }
 
-start().then(({db, bot}) => {
-  bot.on('message', (msg) => onMessage(bot, db, msg).then())
-})
-
-async function onMessage (bot, db, msg) {
-  await db.collection('messages').insertOne(msg)
-  console.log('message received')
-  bot.sendMessage(msg.chat.id, okTexts[Math.floor(Math.random() * okTexts.length)])
+function chain (bot) {
+  return ['on', 'onText'].reduce((acc, curr) => {
+    acc[curr] = (...args) => { bot[curr](...args); return acc }
+    return acc
+  }, {value: () => bot})
 }
+
+async function onFind (msg, [_, text]) {
+
+}
+
+
+async function onUsers (msg) {
+  if (!await db.userIsAdmin(msg.from.id)) { return }
+  const users = await db.listUsers()
+  tg.sendMessage(msg.chat.id, users.map(u => `${u.username} (${u.id})`).join('\n'))
+}
+async function onUserInfo (msg, [_, userId]) {
+  if (!await db.userIsAdmin(msg.from.id)) { return }
+  const user = await db.getUserInfo(parseInt(userId))
+  tg.sendMessage(msg.chat.id, user ? `${JSON.stringify(user)}` : `user with id ${userId} never talked to me`)
+}
+async function onUserMessages (msg, [_, userId]) {
+  if (!await db.userIsAdmin(msg.from.id)) { return }
+  const messages = await db.getUserMessages(parseInt(userId))
+  messages.forEach(m => tg.sendMessage(msg.chat.id, JSON.stringify(m, null, 2)))
+}
+async function onAnyMessage (msg) {
+  await db.saveFullMessage(msg)
+  if (msg.text && msg.text.startsWith('/')) {
+    return
+  }
+  tg.sendMessage(msg.chat.id, okTexts[Math.floor(Math.random() * okTexts.length)])
+}
+
+main().then()

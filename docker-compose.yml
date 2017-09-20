@@ -4,7 +4,7 @@ services:
     build: .
     volumes:
       - .:/appp
-    command: node index.js ${TELEGRAM_BOT_API}
+    command: node index.js ${TELEGRAM_BOT_API} ${ROOT_ID}
     ports:
     - "3000:3000"
     links:
