@@ -7,6 +7,7 @@ function getBot () {
   }
   return bot
 }
+
 async function connect (telegramBotToken) {
   bot = new TelegramBot(telegramBotToken, {polling: true})
   console.log('Telegram API initialized')

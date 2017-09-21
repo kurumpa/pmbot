@@ -1,7 +1,8 @@
 /* eslint-env node */
 const db = require('./src/db')
 const tg = require('./src/tg')
-const {okTexts} = require('./src/texts')
+const commands = require('./src/commands')
+const adminCommands = require('./src/adminCommands')
 
 async function main () {
   const telegramBotToken = process.argv[2]
@@ -11,21 +12,30 @@ async function main () {
 
   await db.connect()
   await tg.connect(telegramBotToken)
-  const userIds = await db.getAdminIds()
+  const adminIds = await db.getAdminIds()
 
-  process.on('unhandledRejection', async function (err, p) {
+  process.on('unhandledRejection', (err, p) => {
     console.log('Unhandled Rejection at:', p, 'reason:', err.stack)
-    tg.sendErrorLog(userIds, err.stack)
+    tg.sendErrorLog(adminIds, err.stack)
+  })
+  process.on('uncaughtException', (err) => {
+    console.log('Uncaught Exception:', err.stack)
+    tg.sendErrorLog(adminIds, err.stack)
   })
 
+  /* eslint-disable no-multi-spaces */
   chain(tg.getBot())
-    .on('message', onAnyMessage)
-    .onText(/\/find (.+)/, onFind)
-    .onText(/\/users/, onUsers)
-    .onText(/\/userinfo (\d+)/, onUserInfo)
-    .onText(/\/usermessages (\d+)/, onUserMessages)
+    .on('message',                  commands.onAnyMessage)
+    .onText(/\/start/,              commands.onStart)
+    .onText(/\/help/,               commands.onHelp)
+    .onText(/\/find (.+)/,          commands.onFind)
+    .onText(/\/findex (.+)/,        commands.onFindEx)
+    .onText(/\/users/,              adminCommands.onUsers)
+    .onText(/\/userinfo (\d+)/,     adminCommands.onUserInfo)
+    .onText(/\/usermessages (\d+)/, adminCommands.onUserMessages)
+  /* eslint-enable no-multi-spaces */
 
-  userIds.forEach(id => tg.sendMessage(id, 'Bot restarted'))
+  adminIds.forEach(id => tg.sendMessage(id, 'Bot restarted'))
 }
 
 function chain (bot) {
@@ -33,33 +43,6 @@ function chain (bot) {
     acc[curr] = (...args) => { bot[curr](...args); return acc }
     return acc
   }, {value: () => bot})
-}
-
-async function onFind (msg, [_, text]) {
-  const messages = await db.findMessages(msg.from.id, new RegExp(text, 'i'))
-  messages.forEach(m => { if (!m.text.startsWith('/')) tg.sendMessage(msg.chat.id, m.text) })
-}
-async function onUsers (msg) {
-  if (!await db.userIsAdmin(msg.from.id)) { return }
-  const users = await db.listUsers()
-  tg.sendMessage(msg.chat.id, users.map(u => `${u.username} (${u.id})`).join('\n'))
-}
-async function onUserInfo (msg, [_, userId]) {
-  if (!await db.userIsAdmin(msg.from.id)) { return }
-  const user = await db.getUserInfo(parseInt(userId))
-  tg.sendMessage(msg.chat.id, user ? `${JSON.stringify(user)}` : `user with id ${userId} never talked to me`)
-}
-async function onUserMessages (msg, [_, userId]) {
-  if (!await db.userIsAdmin(msg.from.id)) { return }
-  const messages = await db.getUserMessages(parseInt(userId))
-  messages.forEach(m => tg.sendMessage(msg.chat.id, JSON.stringify(m, null, 2)))
-}
-async function onAnyMessage (msg) {
-  await db.saveFullMessage(msg)
-  if (msg.text && msg.text.startsWith('/')) {
-    return
-  }
-  tg.sendMessage(msg.chat.id, okTexts[Math.floor(Math.random() * okTexts.length)])
 }
 
 main().then()
