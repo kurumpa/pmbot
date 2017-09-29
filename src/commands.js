@@ -7,7 +7,7 @@ exports.onStart = async function onStart (msg) {
 }
 
 exports.onHelp = async function onStart (msg) {
-  tg.sendMessage(msg.chat.id, texts.help)
+  tg.sendMessage(msg.chat.id, (await db.userIsAdmin(msg.from.id)) ? texts.helpAdmin : texts.help)
 }
 
 exports.onFind = async function onFind (msg, [_, text]) {
