@@ -19,10 +19,15 @@ async function saveFullMessage (msg) {
 }
 
 async function listUsers () {
-  return getDb().collection('messages').distinct('from')
+  return getDb().collection('messages').aggregate([{
+    '$group': {
+      '_id': { fromId: '$from.id', fromName: '$from.username' },
+      'user': { $last: '$from' }
+    }
+  }]).map(g => g.user)
 }
 
-const adminId = parseInt(process.argv[3])
+const adminId = parseInt(process.argv[3] || process.env.ROOT_ID)
 async function getAdminIds () {
   return adminId ? [adminId] : []
 }

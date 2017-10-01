@@ -5,7 +5,7 @@ const commands = require('./src/commands')
 const adminCommands = require('./src/adminCommands')
 
 async function main () {
-  const telegramBotToken = process.argv[2]
+  const telegramBotToken = process.argv[2] || process.env.TELEGRAM_BOT_API
   if (!telegramBotToken) {
     throw new Error('Usage: node index.js YOUR_TELEGRAM_BOT_TOKEN')
   }

@@ -3,7 +3,7 @@ const tg = require('./tg')
 
 exports.onUsers = async function onUsers (msg) {
   if (!await db.userIsAdmin(msg.from.id)) { return }
-  const users = await db.listUsers()
+  const users = await (await db.listUsers()).toArray()
   tg.sendMessage(msg.chat.id, users.map(u => `${u.username} (${u.id})`).join('\n'))
 }
 exports.onUserInfo = async function onUserInfo (msg, [_, userId]) {
