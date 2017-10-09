@@ -25,14 +25,17 @@ async function main () {
 
   /* eslint-disable no-multi-spaces */
   chain(tg.getBot())
-    .on('message',                  commands.onAnyMessage)
-    .onText(/\/start/,              commands.onStart)
-    .onText(/\/help/,               commands.onHelp)
-    .onText(/\/find (.+)/,          commands.onFind)
-    .onText(/\/findex (.+)/,        commands.onFindEx)
-    .onText(/\/users/,              adminCommands.onUsers)
-    .onText(/\/userinfo (\d+)/,     adminCommands.onUserInfo)
-    .onText(/\/usermessages (\d+)/, adminCommands.onUserMessages)
+    .on('message',                   commands.onAnyMessage)
+    .onText(/^\/start$/,             commands.onStart)
+    .onText(/^\/cancel$/,            commands.onCancel)
+    .onText(/^\/help$/,              commands.onHelp)
+    .onText(/^\/find$/,              commands.onBeginFind)
+    .onText(/^\/find (.+)/,          commands.onFind)
+    .onText(/^\/findex$/,            commands.onBeginFindEx)
+    .onText(/^\/findex (.+)/,        commands.onFindEx)
+    .onText(/^\/users$/,             adminCommands.onUsers)
+    .onText(/^\/userinfo (\d+)/,     adminCommands.onUserInfo)
+    .onText(/^\/usermessages (\d+)/, adminCommands.onUserMessages)
   /* eslint-enable no-multi-spaces */
 
   adminIds.forEach(id => tg.sendMessage(id, 'Bot restarted'))

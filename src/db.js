@@ -7,18 +7,19 @@ function getDb () {
   if (!db) { throw new Error('Not connected') }
   return db
 }
+exports.getDb = getDb
 
-async function connect () {
+exports.connect = async function connect () {
   db = await MongoClient.connect(mongoUrl)
   console.log('Connected to MongoDB')
   return db
 }
 
-async function saveFullMessage (msg) {
+exports.saveFullMessage = async function saveFullMessage (msg) {
   return getDb().collection('messages').insertOne(msg)
 }
 
-async function listUsers () {
+exports.listUsers = async function listUsers () {
   return getDb().collection('messages').aggregate([{
     '$group': {
       '_id': { fromId: '$from.id', fromName: '$from.username' },
@@ -28,32 +29,33 @@ async function listUsers () {
 }
 
 const adminId = parseInt(process.argv[3] || process.env.ROOT_ID)
-async function getAdminIds () {
+exports.getAdminIds = async function getAdminIds () {
   return adminId ? [adminId] : []
 }
-async function userIsAdmin (userId) {
+exports.userIsAdmin = async function userIsAdmin (userId) {
   return userId === adminId
 }
-async function getUserInfo (userId) {
+exports.getUserInfo = async function getUserInfo (userId) {
   const msg = await getDb().collection('messages').findOne({'from.id': userId}, {from: 1})
   return msg && msg.from
 }
-async function getUserMessages (userId) {
+exports.getUserMessages = async function getUserMessages (userId) {
   return getDb().collection('messages').find({'from.id': userId})
 }
 
-async function findMessages (userId, regex) {
+exports.findMessages = async function findMessages (userId, regex) {
   return getDb().collection('messages').find({'from.id': userId, text: {$regex: regex}}, {text: 1})
 }
 
-module.exports = {
-  getDb,
-  connect,
-  listUsers,
-  saveFullMessage,
-  userIsAdmin,
-  getAdminIds,
-  getUserInfo,
-  getUserMessages,
-  findMessages,
+exports.getUserSession = async function getUserSession (userId) {
+  const session = await getDb().collection('sessions').findOne({userId})
+  return session || {
+    userId,
+    lastCommand: null
+  }
 }
+
+exports.saveUserSession = async function saveUserSession (session) {
+  return getDb().collection('sessions').update({userId: session.userId}, session, {upsert: true})
+}
+
